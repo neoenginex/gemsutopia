@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { IconStar, IconStarFilled, IconShoppingBag, IconShoppingBagCheck } from '@tabler/icons-react';
@@ -7,7 +7,6 @@ import { useGemPouch } from '../contexts/GemPouchContext';
 import { useWishlist } from '../contexts/WishlistContext';
 
 export default function Products() {
-  const [hoveredCard, setHoveredCard] = useState<number | null>(null);
   const router = useRouter();
   const { addItem, removeItem, isInPouch } = useGemPouch();
   const { addItem: addToWishlist, removeItem: removeFromWishlist, isInWishlist } = useWishlist();
@@ -58,7 +57,7 @@ export default function Products() {
       
       // If significant vertical movement detected, clear hover
       if (diffY > 10) {
-        setHoveredCard(null);
+        // Clear hover effects if needed
       }
     };
     

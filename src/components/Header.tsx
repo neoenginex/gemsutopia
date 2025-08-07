@@ -1,6 +1,7 @@
 'use client';
 import { IconMenu2, IconShoppingBag, IconStar } from '@tabler/icons-react';
 import { useState } from 'react';
+import Link from 'next/link';
 import Dropdown from './Dropdown';
 import { useGemPouch } from '../contexts/GemPouchContext';
 
@@ -25,13 +26,13 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center h-16">
           <div className="flex items-center">
-            <a href="/" className="cursor-pointer">
+            <Link href="/" className="cursor-pointer">
               <img 
                 src="/logos/gem.png" 
                 alt="Gem"
                 className="h-6"
               />
-            </a>
+            </Link>
           </div>
           <div className="flex-1 flex justify-start pl-8">
             <div className="hidden md:flex items-center gap-6">
