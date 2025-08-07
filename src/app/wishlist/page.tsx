@@ -5,6 +5,7 @@ import { IconStar, IconTrash, IconShoppingBag } from '@tabler/icons-react';
 import { useWishlist } from '@/contexts/WishlistContext';
 import { useGemPouch } from '@/contexts/GemPouchContext';
 import Image from 'next/image';
+import Link from 'next/link';
 
 export default function Wishlist() {
   const { items, removeItem } = useWishlist();
@@ -29,12 +30,12 @@ export default function Wishlist() {
               <h2 className="text-2xl font-semibold text-black mb-4">Your wishlist is empty</h2>
               <p className="text-neutral-600 mb-8">Save your favorite gems to your wishlist for easy access.</p>
               
-              <a
+              <Link
                 href="/"
                 className="inline-block bg-black text-white py-3 px-8 rounded-full font-semibold hover:bg-neutral-800 transition-colors"
               >
                 Discover Gems
-              </a>
+              </Link>
             </div>
           ) : (
             /* Items in wishlist */
