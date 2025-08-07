@@ -20,7 +20,7 @@ export default function About() {
             
             <h2 className="text-2xl font-bold text-black mt-8 mb-4">Our Story</h2>
             <p className="mb-6">
-              Founded with a passion for authentic gemstones and exquisite jewelry, Gemsutopia has been curating the finest collection of precious stones and handcrafted pieces. Our journey began with a simple mission: to bring the world's most beautiful gems directly to you.
+              Founded with a passion for authentic gemstones and exquisite jewelry, Gemsutopia has been curating the finest collection of precious stones and handcrafted pieces. Our journey began with a simple mission: to bring the world&apos;s most beautiful gems directly to you.
             </p>
             
             <h2 className="text-2xl font-bold text-black mt-8 mb-4">Our Mission</h2>

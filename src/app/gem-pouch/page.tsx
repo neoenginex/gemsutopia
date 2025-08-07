@@ -4,6 +4,7 @@ import Footer from '@/components/Footer';
 import { IconShoppingBag, IconTrash } from '@tabler/icons-react';
 import { useGemPouch } from '@/contexts/GemPouchContext';
 import Image from 'next/image';
+import Link from 'next/link';
 
 export default function GemPouch() {
   const { items, removeItem } = useGemPouch();
@@ -26,14 +27,14 @@ export default function GemPouch() {
                 <IconShoppingBag className="h-10 w-10 text-neutral-500" strokeWidth={2} />
               </div>
               <h2 className="text-2xl font-semibold text-black mb-4">Your gem pouch is empty</h2>
-              <p className="text-neutral-600 mb-8">Looks like you haven't added any gems to your pouch yet.</p>
+              <p className="text-neutral-600 mb-8">Looks like you haven&apos;t added any gems to your pouch yet.</p>
               
-              <a
+              <Link
                 href="/"
                 className="inline-block bg-black text-white py-3 px-8 rounded-full font-semibold hover:bg-neutral-800 transition-colors"
               >
                 Continue Shopping
-              </a>
+              </Link>
             </div>
           ) : (
             /* Items in cart */

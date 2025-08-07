@@ -17,7 +17,7 @@ export default function RefundPolicy() {
             <div>
               <h2 className="text-2xl font-bold text-black mb-4">30-Day Money Back Guarantee</h2>
               <p className="mb-4">
-                We stand behind the quality of our products. If you're not completely satisfied with your purchase, you may return it within 30 days of delivery for a full refund.
+                We stand behind the quality of our products. If you&apos;re not completely satisfied with your purchase, you may return it within 30 days of delivery for a full refund.
               </p>
             </div>
             

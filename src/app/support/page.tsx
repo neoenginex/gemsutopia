@@ -11,7 +11,7 @@ export default function Support() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h1 className="text-3xl md:text-4xl font-bold text-black mb-4">Support Center</h1>
-            <p className="text-lg text-neutral-600">We're here to help you with any questions</p>
+            <p className="text-lg text-neutral-600">We&apos;re here to help you with any questions</p>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
@@ -47,7 +47,7 @@ export default function Support() {
               <div className="bg-white rounded-lg p-6 shadow-sm">
                 <h3 className="text-lg font-semibold text-black mb-3">How do I track my order?</h3>
                 <p className="text-neutral-600">
-                  Once your order is shipped, you'll receive a tracking number via email. You can use this number to track your package on our shipping partner's website.
+                  Once your order is shipped, you&apos;ll receive a tracking number via email. You can use this number to track your package on our shipping partner&apos;s website.
                 </p>
               </div>
               
