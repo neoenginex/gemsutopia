@@ -24,8 +24,9 @@ const images = [
   '/images/Review-5.jpg'
 ];
 
-export default function ProductPage({ params }: { params: { id: string } }) {
-  const productId = parseInt(params.id);
+export default async function ProductPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const productId = parseInt(id);
   const productImage = images[productId - 1] || images[0];
   const [isInWishlist, setIsInWishlist] = useState(false);
   
