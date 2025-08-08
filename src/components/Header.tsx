@@ -16,7 +16,7 @@ export default function Header() {
   const { getContent } = useCMSContent();
   
   // Get marquee settings
-  const marqueeEnabled = getContent('marquee', 'enabled') === 'true';
+  const marqueeEnabled = getContent('marquee', 'enabled') !== 'false'; // Show by default
   const marqueeText = getContent('marquee', 'text') || '🎉 Grand Opening Sale - Up to 25% Off All Items! 🎉';
   const gradientFrom = getContent('marquee', 'gradient_from') || '#9333ea'; // purple-600
   const gradientTo = getContent('marquee', 'gradient_to') || '#db2777'; // pink-600

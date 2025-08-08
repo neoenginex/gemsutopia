@@ -27,6 +27,10 @@ export interface Product {
     carat?: number;
     clarity?: string;
     color?: string;
+    card_color?: string;
+    card_gradient_from?: string;
+    card_gradient_to?: string;
+    use_gradient?: boolean;
   } | null;
 }
 
@@ -36,7 +40,7 @@ export interface SiteContent {
   key: string;
   content_type: 'text' | 'html' | 'image' | 'json' | 'color' | 'checkbox';
   value: string;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
   is_active: boolean;
   created_at: string;
   updated_at: string;

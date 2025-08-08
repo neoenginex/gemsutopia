@@ -1,7 +1,8 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { Edit2, Save, X, Plus, Globe, ImageIcon, Type, Code, Package } from 'lucide-react';
-import { SiteContent } from '@/lib/types/database';
+import Image from 'next/image';
+import { SiteContent, Product } from '@/lib/types/database';
 
 export default function SiteContentManager() {
   const [content, setContent] = useState<SiteContent[]>([]);
@@ -397,7 +398,7 @@ export default function SiteContentManager() {
     return content.filter(item => item.section === sectionId);
   };
 
-  const getContentTypeIcon = (type: string) => {
+  const getContentTypeIcon = (type: string): React.ComponentType<{ className?: string }> => {
     switch (type) {
       case 'text': return Type;
       case 'html': return Code;
@@ -547,7 +548,7 @@ export default function SiteContentManager() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {sectionItems.map((item) => {
                       const currentValue = getContentValue(item.section, item.key);
-                      const ContentIcon = getContentTypeIcon(item.type as any);
+                      const ContentIcon = getContentTypeIcon(item.type);
                       
                       return (
                         <div key={`${item.section}-${item.key}`} className="bg-white/5 rounded-lg border border-white/10 p-4">
@@ -562,7 +563,7 @@ export default function SiteContentManager() {
                                 id: content.find(c => c.section === item.section && c.key === item.key)?.id || '',
                                 section: item.section,
                                 key: item.key,
-                                content_type: item.type as any,
+                                content_type: item.type as SiteContent['content_type'],
                                 value: currentValue,
                                 metadata: {},
                                 is_active: true,
@@ -591,7 +592,7 @@ export default function SiteContentManager() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {sectionItems.map((item) => {
                     const currentValue = getContentValue(item.section, item.key);
-                    const ContentIcon = getContentTypeIcon(item.type as any);
+                    const ContentIcon = getContentTypeIcon(item.type);
                     
                     return (
                       <div key={`${item.section}-${item.key}`} className="bg-white/5 rounded-lg border border-white/10 p-4">
@@ -606,7 +607,7 @@ export default function SiteContentManager() {
                               id: content.find(c => c.section === item.section && c.key === item.key)?.id || '',
                               section: item.section,
                               key: item.key,
-                              content_type: item.type as any,
+                              content_type: item.type as SiteContent['content_type'],
                               value: currentValue,
                               metadata: {},
                               is_active: true,
@@ -798,7 +799,7 @@ function AddContentModal({ onClose, onSave }: {
   const [formData, setFormData] = useState({
     section: 'hero',
     key: '',
-    content_type: 'text' as 'text' | 'html' | 'image' | 'json',
+    content_type: 'text' as SiteContent['content_type'],
     value: '',
     is_active: true
   });
@@ -873,7 +874,7 @@ function AddContentModal({ onClose, onSave }: {
               </label>
               <select
                 value={formData.content_type}
-                onChange={(e) => setFormData(prev => ({...prev, content_type: e.target.value as any}))}
+                onChange={(e) => setFormData(prev => ({...prev, content_type: e.target.value as SiteContent['content_type']}))}
                 className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-white"
               >
                 <option value="text">Text</option>
@@ -1044,7 +1045,7 @@ function FeaturedProductsManager() {
         <div className="text-center py-12 text-slate-400 bg-white/5 rounded-lg border border-white/10">
           <Package className="h-12 w-12 mx-auto mb-3 opacity-50" />
           <p className="text-lg">No featured products yet</p>
-          <p className="text-sm mt-1">Click "Add Product" to create your first featured product</p>
+          <p className="text-sm mt-1">Click &quot;Add Product&quot; to create your first featured product</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1140,7 +1141,7 @@ function FeaturedProductsManager() {
 }
 
 function ProductModal({ product, onClose, onSave }: {
-  product: any;
+  product: Product | null;
   onClose: () => void;
   onSave: () => void;
 }) {
