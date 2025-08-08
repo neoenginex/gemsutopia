@@ -20,13 +20,13 @@ function verifyAdminToken(request: NextRequest): { valid: boolean; email?: strin
       return { valid: false, reason: 'Server configuration error' };
     }
 
-    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    const decoded = jwt.verify(token, JWT_SECRET) as Record<string, unknown>;
     
     if (!decoded.isAdmin) {
       return { valid: false, reason: 'Not admin user' };
     }
 
-    return { valid: true, email: decoded.email };
+    return { valid: true, email: decoded.email as string };
   } catch (error) {
     console.error('Token verification failed:', error);
     return { valid: false, reason: 'Invalid token' };

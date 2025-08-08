@@ -9,10 +9,9 @@ import {
   EyeOff,
   Star,
   Package,
-  DollarSign,
-  Tag,
-  Filter
+  Tag
 } from 'lucide-react';
+import Image from 'next/image';
 import { Product } from '@/lib/types/database';
 
 export default function Products() {
@@ -256,11 +255,13 @@ export default function Products() {
                   <tr key={product.id} className="border-b border-white/5 hover:bg-white/5">
                     <td className="p-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-slate-700 rounded-lg flex items-center justify-center">
+                        <div className="w-10 h-10 bg-slate-700 rounded-lg flex items-center justify-center overflow-hidden">
                           {product.images.length > 0 ? (
-                            <img
+                            <Image
                               src={product.images[0]}
                               alt={product.name}
+                              width={40}
+                              height={40}
                               className="w-10 h-10 object-cover rounded-lg"
                             />
                           ) : (
@@ -633,9 +634,11 @@ function ProductModal({ product, onClose, onSave }: {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {formData.images.map((img, index) => (
                   <div key={index} className="relative group">
-                    <img
+                    <Image
                       src={img}
                       alt={`Product image ${index + 1}`}
+                      width={80}
+                      height={80}
                       className="w-full h-20 object-cover rounded-lg bg-slate-700"
                     />
                     <button

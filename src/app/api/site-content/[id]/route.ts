@@ -27,13 +27,14 @@ function verifyAdminToken(request: NextRequest): boolean {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const resolvedParams = await params;
   try {
     const { data: content, error } = await adminSupabase
       .from('site_content')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', resolvedParams.id)
       .single();
 
     if (error) {
@@ -60,8 +61,9 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const resolvedParams = await params;
   try {
     if (!verifyAdminToken(request)) {
       return NextResponse.json(
@@ -72,7 +74,7 @@ export async function PUT(
 
     const data = await request.json();
 
-    const updateData: any = {};
+    const updateData: Record<string, unknown> = {};
     
     if (data.value !== undefined) updateData.value = data.value;
     if (data.metadata !== undefined) updateData.metadata = data.metadata;
@@ -81,7 +83,7 @@ export async function PUT(
     const { data: updatedContent, error } = await adminSupabase
       .from('site_content')
       .update(updateData)
-      .eq('id', params.id)
+      .eq('id', resolvedParams.id)
       .select()
       .single();
 
@@ -110,8 +112,9 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const resolvedParams = await params;
   try {
     if (!verifyAdminToken(request)) {
       return NextResponse.json(
@@ -123,7 +126,7 @@ export async function DELETE(
     const { error } = await adminSupabase
       .from('site_content')
       .delete()
-      .eq('id', params.id);
+      .eq('id', resolvedParams.id);
 
     if (error) {
       console.error('Supabase error:', error);

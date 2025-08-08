@@ -392,7 +392,7 @@ export default function Reviews() {
             <h3 className="text-3xl font-bold text-black mb-4">Share Your Experience</h3>
             <p className="text-lg text-neutral-600 max-w-2xl mx-auto">
               Your feedback helps us grow and helps other customers make informed decisions. 
-              We'd love to hear about your experience with Gemsutopia!
+              We&apos;d love to hear about your experience with Gemsutopia!
             </p>
           </div>
 

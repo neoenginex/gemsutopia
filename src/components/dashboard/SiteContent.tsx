@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { Edit2, Save, X, Plus, Globe, ImageIcon, Type, Code, Package } from 'lucide-react';
+import { Edit2, X, ImageIcon, Type, Code, Package } from 'lucide-react';
 import Image from 'next/image';
 import { SiteContent, Product } from '@/lib/types/database';
 
@@ -131,7 +131,7 @@ export default function SiteContentManager() {
     return new Promise((resolve) => {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
-      const img = new Image();
+      const img = new HTMLImageElement();
       
       img.onload = () => {
         // Calculate new dimensions
@@ -394,9 +394,6 @@ export default function SiteContentManager() {
     return item?.value || '';
   };
 
-  const getContentForSection = (sectionId: string) => {
-    return content.filter(item => item.section === sectionId);
-  };
 
   const getContentTypeIcon = (type: string): React.ComponentType<{ className?: string }> => {
     switch (type) {
@@ -471,11 +468,12 @@ export default function SiteContentManager() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {getHeroImages().map((imageUrl, index) => (
                   <div key={index} className="relative group bg-white/5 rounded-lg border border-white/10 overflow-hidden">
-                    <div className="aspect-video bg-slate-700 overflow-hidden">
-                      <img
+                    <div className="aspect-video bg-slate-700 overflow-hidden relative">
+                      <Image
                         src={imageUrl}
                         alt={`Hero image ${index + 1}`}
-                        className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                        fill
+                        className="object-cover transition-transform group-hover:scale-105"
                         onLoad={() => console.log(`Image loaded: ${imageUrl}`)}
                         onError={(e) => {
                           console.error(`Failed to load image: ${imageUrl}`);
@@ -961,9 +959,9 @@ function AddContentModal({ onClose, onSave }: {
 }
 
 function FeaturedProductsManager() {
-  const [products, setProducts] = useState<any[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editingProduct, setEditingProduct] = useState<any>(null);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
 
   useEffect(() => {
@@ -1053,10 +1051,11 @@ function FeaturedProductsManager() {
             <div key={product.id} className="bg-white/5 rounded-lg border border-white/10 overflow-hidden">
               <div className="aspect-square bg-slate-700 overflow-hidden relative">
                 {product.images && product.images.length > 0 ? (
-                  <img
+                  <Image
                     src={product.images[0]}
                     alt={product.name}
-                    className="w-full h-full object-cover"
+                    fill
+                    className="object-cover"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-slate-400">
@@ -1437,7 +1436,7 @@ function ProductModal({ product, onClose, onSave }: {
               {uploading && <p className="text-sm text-white">Uploading...</p>}
               {formData.image && (
                 <div className="mt-2">
-                  <img src={formData.image} alt="Preview" className="h-20 w-20 object-cover rounded" />
+                  <Image src={formData.image} alt="Preview" width={80} height={80} className="h-20 w-20 object-cover rounded" />
                 </div>
               )}
             </div>

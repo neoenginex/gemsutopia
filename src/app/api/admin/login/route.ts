@@ -3,6 +3,7 @@ import { checkRateLimit, recordFailedAttempt } from '../../../../lib/security/ra
 import { sendLoginNotification, getClientIP, detectSuspiciousLogin } from '../../../../lib/security/notifications';
 import { sendVerificationCode } from '../../../../lib/security/twoFactor';
 import { isIPAllowed } from '../../../../lib/security/ipAllowlist';
+import jwt from 'jsonwebtoken';
 
 // Get authorized credentials from environment variables
 const AUTHORIZED_USERS = [
@@ -137,7 +138,6 @@ export async function POST(request: NextRequest) {
       
       // Create JWT token for the session
       const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production';
-      const jwt = require('jsonwebtoken');
       const userName = getUserName(email);
       const token = jwt.sign(
         { 
@@ -159,8 +159,6 @@ export async function POST(request: NextRequest) {
 
     // Handle 2FA code verification step
     if (step === 'verify_code') {
-      const { } = await request.json();
-      
       // This would be handled by a separate endpoint
       return NextResponse.json(
         { message: 'Use the verify-code endpoint' },

@@ -23,8 +23,9 @@ function verifyAdminToken(request: NextRequest): boolean {
 // PUT /api/admin/reviews/[id] - Update review (admin only)
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const resolvedParams = await params;
   try {
     // Verify admin token
     if (!verifyAdminToken(request)) {
@@ -37,7 +38,7 @@ export async function PUT(
     const data = await request.json();
 
     // Prepare update data (only include fields that are provided)
-    const updateData: any = {};
+    const updateData: Record<string, unknown> = {};
     
     if (data.is_approved !== undefined) updateData.is_approved = data.is_approved;
     if (data.is_featured !== undefined) updateData.is_featured = data.is_featured;
@@ -50,7 +51,7 @@ export async function PUT(
     const { data: updatedReview, error } = await supabaseAdmin
       .from('reviews')
       .update(updateData)
-      .eq('id', params.id)
+      .eq('id', resolvedParams.id)
       .select()
       .single();
 
@@ -80,8 +81,9 @@ export async function PUT(
 // DELETE /api/admin/reviews/[id] - Delete review (admin only)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const resolvedParams = await params;
   try {
     // Verify admin token
     if (!verifyAdminToken(request)) {
@@ -99,7 +101,7 @@ export async function DELETE(
       const { error } = await supabaseAdmin
         .from('reviews')
         .delete()
-        .eq('id', params.id);
+        .eq('id', resolvedParams.id);
 
       if (error) {
         console.error('Supabase error:', error);
@@ -113,7 +115,7 @@ export async function DELETE(
       const { error } = await supabaseAdmin
         .from('reviews')
         .update({ is_active: false })
-        .eq('id', params.id);
+        .eq('id', resolvedParams.id);
 
       if (error) {
         console.error('Supabase error:', error);

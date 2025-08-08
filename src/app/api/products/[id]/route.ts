@@ -23,13 +23,14 @@ function verifyAdminToken(request: NextRequest): boolean {
 // GET /api/products/[id] - Get single product
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const resolvedParams = await params;
   try {
     const { data: product, error } = await supabase
       .from('products')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', resolvedParams.id)
       .single();
 
     if (error) {
@@ -57,8 +58,9 @@ export async function GET(
 // PUT /api/products/[id] - Update product (admin only)
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const resolvedParams = await params;
   try {
     // Verify admin token
     if (!verifyAdminToken(request)) {
@@ -71,7 +73,7 @@ export async function PUT(
     const data = await request.json();
 
     // Prepare update data (only include fields that are provided)
-    const updateData: any = {};
+    const updateData: Record<string, unknown> = {};
     
     if (data.name !== undefined) updateData.name = data.name;
     if (data.description !== undefined) updateData.description = data.description;
@@ -92,7 +94,7 @@ export async function PUT(
     const { data: updatedProduct, error } = await supabaseAdmin
       .from('products')
       .update(updateData)
-      .eq('id', params.id)
+      .eq('id', resolvedParams.id)
       .select()
       .single();
 
@@ -122,8 +124,9 @@ export async function PUT(
 // DELETE /api/products/[id] - Delete product (admin only)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const resolvedParams = await params;
   try {
     // Verify admin token
     if (!verifyAdminToken(request)) {
@@ -141,7 +144,7 @@ export async function DELETE(
       const { error } = await supabaseAdmin
         .from('products')
         .delete()
-        .eq('id', params.id);
+        .eq('id', resolvedParams.id);
 
       if (error) {
         console.error('Supabase error:', error);
@@ -155,7 +158,7 @@ export async function DELETE(
       const { error } = await supabaseAdmin
         .from('products')
         .update({ is_active: false })
-        .eq('id', params.id);
+        .eq('id', resolvedParams.id);
 
       if (error) {
         console.error('Supabase error:', error);

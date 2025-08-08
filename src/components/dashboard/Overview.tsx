@@ -2,7 +2,6 @@
 import { useState, useEffect } from 'react';
 import { 
   TrendingUp, 
-  TrendingDown, 
   DollarSign, 
   ShoppingCart, 
   Users, 
@@ -19,9 +18,18 @@ interface MetricData {
   value: string;
   change: number;
   trend: 'up' | 'down';
-  icon: React.ComponentType<any>;
+  icon: React.ComponentType<Record<string, unknown>>;
   color: string;
   bgColor: string;
+}
+
+interface Order {
+  id: string;
+  status: string;
+  customer: string;
+  product: string;
+  amount: string;
+  date: string;
 }
 
 export default function Overview() {
@@ -56,7 +64,7 @@ export default function Overview() {
         return 'Admin';
     }
   };
-  const [metrics, setMetrics] = useState<MetricData[]>([
+  const [metrics] = useState<MetricData[]>([
     {
       title: 'Total Revenue',
       value: '$0.00',
@@ -113,7 +121,7 @@ export default function Overview() {
     }
   ]);
 
-  const [recentOrders, setRecentOrders] = useState<any[]>([]);
+  const [recentOrders] = useState<Order[]>([]);
 
   const getStatusColor = (status: string) => {
     switch (status) {

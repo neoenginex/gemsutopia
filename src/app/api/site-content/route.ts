@@ -52,13 +52,13 @@ function verifyAdminToken(request: NextRequest): { valid: boolean; email?: strin
     }
 
     const token = authHeader.substring(7);
-    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    const decoded = jwt.verify(token, JWT_SECRET) as Record<string, unknown>;
     
-    if (!decoded.email || !decoded.isAdmin || !ADMIN_EMAILS.includes(decoded.email)) {
+    if (!decoded.email || !decoded.isAdmin || !ADMIN_EMAILS.includes(decoded.email as string)) {
       return { valid: false };
     }
     
-    return { valid: true, email: decoded.email };
+    return { valid: true, email: decoded.email as string };
   } catch {
     return { valid: false };
   }

@@ -73,7 +73,7 @@ function verifyAdminToken(request: NextRequest): { valid: boolean; email?: strin
     }
 
     const token = authHeader.substring(7);
-    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    const decoded = jwt.verify(token, JWT_SECRET) as Record<string, unknown>;
     
     // Verify token contains required fields
     if (!decoded.email || !decoded.isAdmin) {
@@ -81,16 +81,16 @@ function verifyAdminToken(request: NextRequest): { valid: boolean; email?: strin
     }
     
     // Verify email is in admin list
-    if (!ADMIN_EMAILS.includes(decoded.email)) {
+    if (!ADMIN_EMAILS.includes(decoded.email as string)) {
       return { valid: false, reason: 'Unauthorized email address' };
     }
     
     // Check token expiration (extra security)
-    if (decoded.exp && decoded.exp < Date.now() / 1000) {
+    if (decoded.exp && (decoded.exp as number) < Date.now() / 1000) {
       return { valid: false, reason: 'Token expired' };
     }
     
-    return { valid: true, email: decoded.email };
+    return { valid: true, email: decoded.email as string };
   } catch (error) {
     return { valid: false, reason: `Token verification failed: ${error}` };
   }
