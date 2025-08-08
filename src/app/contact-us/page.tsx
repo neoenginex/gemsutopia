@@ -1,8 +1,50 @@
+'use client';
+import { useState, useRef, FormEvent } from 'react';
+import emailjs from '@emailjs/browser';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { IconMail, IconPhone, IconMapPin } from '@tabler/icons-react';
+import { useCMSContent } from '@/hooks/useCMSContent';
 
 export default function ContactUs() {
+  const form = useRef<HTMLFormElement>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [message, setMessage] = useState('');
+  const { getContent } = useCMSContent();
+
+  const sendEmail = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setMessage('');
+
+    if (!form.current) {
+      setMessage('Form error. Please try again.');
+      setIsLoading(false);
+      return;
+    }
+
+    // Replace these with your actual EmailJS credentials
+    const SERVICE_ID = 'YOUR_SERVICE_ID';
+    const TEMPLATE_ID = 'YOUR_TEMPLATE_ID';
+    const PUBLIC_KEY = 'YOUR_PUBLIC_KEY';
+
+    emailjs
+      .sendForm(SERVICE_ID, TEMPLATE_ID, form.current, PUBLIC_KEY)
+      .then(
+        () => {
+          setMessage('Message sent successfully! We\'ll get back to you soon.');
+          form.current?.reset();
+        },
+        (error) => {
+          console.log('FAILED...', error.text);
+          setMessage('Failed to send message. Please try again or email us directly.');
+        }
+      )
+      .finally(() => {
+        setIsLoading(false);
+      });
+  };
+
   return (
     <div className="bg-black min-h-screen flex flex-col">
       <Header />
@@ -10,47 +52,28 @@ export default function ContactUs() {
       <div className="flex-grow bg-neutral-100 py-16">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h1 className="text-3xl md:text-4xl font-bold text-black mb-4">Contact Us</h1>
-            <p className="text-lg text-neutral-600">Get in touch with our team</p>
+            <h1 className="text-3xl md:text-4xl font-bold text-black mb-4">Get in Touch</h1>
+            <p className="text-lg text-neutral-600">We&apos;d love to hear from you!</p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-            <div>
-              <h2 className="text-2xl font-bold text-black mb-6">Get in Touch</h2>
-              <div className="space-y-6">
-                <div className="flex items-start gap-4">
-                  <IconMail className="h-6 w-6 text-black mt-1" />
-                  <div>
-                    <h3 className="font-semibold text-black">Email</h3>
-                    <p className="text-neutral-600">support@gemsutopia.com</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start gap-4">
-                  <IconPhone className="h-6 w-6 text-black mt-1" />
-                  <div>
-                    <h3 className="font-semibold text-black">Phone</h3>
-                    <p className="text-neutral-600">+1 (555) 123-4567</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start gap-4">
-                  <IconMapPin className="h-6 w-6 text-black mt-1" />
-                  <div>
-                    <h3 className="font-semibold text-black">Address</h3>
-                    <p className="text-neutral-600">
-                      123 Gemstone Avenue<br />
-                      Jewelry District<br />
-                      New York, NY 10001
-                    </p>
-                  </div>
-                </div>
+          <div className="flex flex-col items-center max-w-2xl mx-auto">
+            <div className="w-full">
+              <h2 className="text-2xl font-bold text-black mb-6 text-center">Send a Message</h2>
+              <div className="flex items-center justify-center gap-2 mb-6">
+                <IconMail className="h-5 w-5 text-black" />
+                <span className="font-semibold text-black">Email:</span>
+                <span className="text-neutral-600">{getContent('contact', 'email') || 'gemsutopia@gmail.com'}</span>
               </div>
-            </div>
-            
-            <div>
-              <h2 className="text-2xl font-bold text-black mb-6">Send a Message</h2>
-              <form className="space-y-6">
+              {message && (
+                <div className={`p-4 rounded-lg mb-6 ${
+                  message.includes('successfully') 
+                    ? 'bg-green-100 text-green-800 border border-green-200' 
+                    : 'bg-red-100 text-red-800 border border-red-200'
+                }`}>
+                  {message}
+                </div>
+              )}
+              <form ref={form} onSubmit={sendEmail} className="space-y-6">
                 <div>
                   <label htmlFor="name" className="block text-sm font-medium text-black mb-2">
                     Name
@@ -58,6 +81,8 @@ export default function ContactUs() {
                   <input
                     type="text"
                     id="name"
+                    name="user_name"
+                    required
                     className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
                     placeholder="Your name"
                   />
@@ -70,6 +95,8 @@ export default function ContactUs() {
                   <input
                     type="email"
                     id="email"
+                    name="user_email"
+                    required
                     className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
                     placeholder="your@email.com"
                   />
@@ -81,7 +108,9 @@ export default function ContactUs() {
                   </label>
                   <textarea
                     id="message"
+                    name="message"
                     rows={5}
+                    required
                     className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
                     placeholder="Your message"
                   />
@@ -89,11 +118,31 @@ export default function ContactUs() {
                 
                 <button
                   type="submit"
-                  className="w-full bg-black text-white py-3 px-6 rounded-lg font-semibold hover:bg-neutral-800 transition-colors"
+                  disabled={isLoading}
+                  className="w-full bg-black text-white py-3 px-6 rounded-lg font-semibold hover:bg-neutral-800 transition-colors disabled:bg-neutral-400 disabled:cursor-not-allowed"
                 >
-                  Send Message
+                  {isLoading ? 'Sending...' : 'Send Message'}
                 </button>
               </form>
+              
+              {/* Additional Contact Information */}
+              <div className="mt-8 pt-8 border-t border-neutral-200">
+                {getContent('contact', 'phone') && (
+                  <div className="flex items-center justify-center gap-2 mb-4">
+                    <IconPhone className="h-5 w-5 text-black" />
+                    <span className="font-semibold text-black">Phone:</span>
+                    <span className="text-neutral-600">{getContent('contact', 'phone')}</span>
+                  </div>
+                )}
+                
+                {getContent('contact', 'address') && (
+                  <div className="flex items-center justify-center gap-2">
+                    <IconMapPin className="h-5 w-5 text-black" />
+                    <span className="font-semibold text-black">Address:</span>
+                    <span className="text-neutral-600 text-center">{getContent('contact', 'address')}</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

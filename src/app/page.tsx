@@ -1,7 +1,7 @@
 import Header from '@/components/Header';
 import Hero from '@/components/Hero';
 import About from '@/components/About';
-import Products from '@/components/Products';
+import Featured from '@/components/Featured';
 import Footer from '@/components/Footer';
 import FAQ from '@/components/FAQ';
 import Reviews from '@/components/Reviews';
@@ -13,7 +13,7 @@ export default function Home() {
       <Header />
       <Hero />
       <About />
-      <Products />
+      <Featured />
       <Reviews />
       <FAQ />
       <div className="flex-grow max-h-20"></div>

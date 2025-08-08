@@ -9,28 +9,47 @@ export default function About() {
       <div className="flex-grow bg-neutral-100 py-16">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h1 className="text-3xl md:text-4xl font-bold text-black mb-4">About Us</h1>
-            <p className="text-lg text-neutral-600">Discover the story behind Gemsutopia</p>
+            <h1 className="text-3xl md:text-4xl font-bold text-black mb-4">About Gemsutopia</h1>
           </div>
           
           <div className="prose prose-lg max-w-none text-neutral-700">
             <p className="text-xl leading-relaxed mb-8">
-              Welcome to Gemsutopia, where the beauty of nature meets the artistry of fine craftsmanship.
+              First of all, thanks for stopping by — I&apos;m Reese, founder of Gemsutopia and a proud Canadian gem dealer based in Alberta.
             </p>
             
-            <h2 className="text-2xl font-bold text-black mt-8 mb-4">Our Story</h2>
             <p className="mb-6">
-              Founded with a passion for authentic gemstones and exquisite jewelry, Gemsutopia has been curating the finest collection of precious stones and handcrafted pieces. Our journey began with a simple mission: to bring the world&apos;s most beautiful gems directly to you.
+              At Gemsutopia, we believe in gemstones with integrity. Every mineral and specimen you see in my shop is hand-selected, ethically sourced, and personally inspected by me. Many pieces — like our Blue Jay sapphires, Alberta peridot, and Canadian ammolite — were even mined by yours truly, straight from the earth with care and respect.
             </p>
             
-            <h2 className="text-2xl font-bold text-black mt-8 mb-4">Our Mission</h2>
             <p className="mb-6">
-              We believe that every gemstone tells a story, and every piece of jewelry should be as unique as the person who wears it. Our commitment to quality, authenticity, and exceptional craftsmanship drives everything we do.
+              This isn&apos;t just a business — it&apos;s a passion. I don&apos;t list anything I wouldn&apos;t be proud to have in my own collection.
             </p>
             
-            <h2 className="text-2xl font-bold text-black mt-8 mb-4">Quality Promise</h2>
             <p className="mb-6">
-              Each gemstone in our collection is carefully sourced and authenticated. We work with trusted suppliers around the world to ensure that every piece meets our rigorous standards for quality, beauty, and ethical sourcing.
+              Each order is thoughtfully packed by my amazing spouse (she&apos;s the best), and we often include a small bonus gift as a thank-you for supporting our dream.
+            </p>
+            
+            <p className="mb-8">
+              You can shop with confidence knowing we stand behind every piece, from quality to safe delivery.
+            </p>
+            
+            <h2 className="text-2xl font-bold text-black mt-8 mb-4">Shipping & Processing</h2>
+            <ul className="mb-6">
+              <li>Processing time: 1–2 business days</li>
+              <li>Estimated delivery (Canada): 3–15 business days (not guaranteed)</li>
+              <li>Estimated delivery (USA): 5–20 business days (not guaranteed)</li>
+            </ul>
+            
+            <p className="mb-6">
+              Have a question or issue? Reach out anytime! I&apos;ll always do my best to help.
+            </p>
+            
+            <p className="text-xl leading-relaxed mb-8">
+              Thanks so much for supporting Gemsutopia. You&apos;re not just buying a gem.. you&apos;re also investing in a story, a journey, and a small Canadian business that truly cares.
+            </p>
+            
+            <p className="text-right font-semibold text-black">
+              — Reese @ Gemsutopia
             </p>
           </div>
         </div>

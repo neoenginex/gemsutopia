@@ -1,7 +1,8 @@
 'use client';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { IconShoppingBag, IconTrash } from '@tabler/icons-react';
+import { IconTrash } from '@tabler/icons-react';
+import { ShoppingBag } from 'lucide-react';
 import { useGemPouch } from '@/contexts/GemPouchContext';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -24,7 +25,7 @@ export default function GemPouch() {
             /* Empty cart state */
             <div className="text-center py-16">
               <div className="w-24 h-24 bg-neutral-300 rounded-full flex items-center justify-center mx-auto mb-6">
-                <IconShoppingBag className="h-10 w-10 text-neutral-500" strokeWidth={2} />
+                <ShoppingBag className="h-10 w-10 text-neutral-500" strokeWidth={2} />
               </div>
               <h2 className="text-2xl font-semibold text-black mb-4">Your gem pouch is empty</h2>
               <p className="text-neutral-600 mb-8">Looks like you haven&apos;t added any gems to your pouch yet.</p>

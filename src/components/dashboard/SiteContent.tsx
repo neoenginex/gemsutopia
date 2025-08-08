@@ -1,0 +1,1483 @@
+'use client';
+import { useState, useEffect } from 'react';
+import { Edit2, Save, X, Plus, Globe, ImageIcon, Type, Code, Package } from 'lucide-react';
+import { SiteContent } from '@/lib/types/database';
+
+export default function SiteContentManager() {
+  const [content, setContent] = useState<SiteContent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editingItem, setEditingItem] = useState<SiteContent | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+
+  useEffect(() => {
+    fetchContent();
+  }, []);
+
+  const fetchContent = async () => {
+    try {
+      const token = localStorage.getItem('admin-token');
+      const response = await fetch('/api/site-content', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await response.json();
+      
+      if (data.success) {
+        setContent(data.content);
+      }
+    } catch (error) {
+      console.error('Error fetching content:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const contentItems = [
+    // Featured Section
+    { section: 'featured', key: 'section_title', label: 'Featured Title', description: 'Featured products section title', type: 'text' },
+    { section: 'featured', key: 'section_subtitle', label: 'Featured Subtitle', description: 'Featured products description', type: 'text' },
+    
+    // About Section
+    { section: 'about', key: 'section_title', label: 'About Title', description: 'About section heading', type: 'text' },
+    { section: 'about', key: 'section_content', label: 'About Content', description: 'About section main text', type: 'html' },
+    
+    // Contact Info
+    { section: 'contact', key: 'email', label: 'Contact Email', description: 'Customer service email', type: 'text' },
+    { section: 'contact', key: 'phone', label: 'Phone Number', description: 'Customer service phone', type: 'text' },
+    { section: 'contact', key: 'address', label: 'Address', description: 'Business address', type: 'text' },
+    
+    // Marquee Settings
+    { section: 'marquee', key: 'enabled', label: 'Enable Marquee', description: 'Show/hide the scrolling announcement banner', type: 'checkbox' },
+    { section: 'marquee', key: 'text', label: 'Marquee Text', description: 'Text that scrolls in the banner', type: 'text' },
+    { section: 'marquee', key: 'gradient_from', label: 'Gradient Start Color', description: 'Starting color for the marquee background', type: 'color' },
+    { section: 'marquee', key: 'gradient_to', label: 'Gradient End Color', description: 'Ending color for the marquee background', type: 'color' }
+  ];
+
+  const [heroImages, setHeroImages] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+
+  const getHeroImages = (): string[] => {
+    const heroItem = content.find(c => c.section === 'hero' && c.key === 'images');
+    if (heroItem?.value) {
+      try {
+        return JSON.parse(heroItem.value);
+      } catch {
+        return heroItem.value ? [heroItem.value] : [];
+      }
+    }
+    return [];
+  };
+
+  const updateHeroImages = async (images: string[]) => {
+    try {
+      const token = localStorage.getItem('admin-token');
+      const heroItem = content.find(c => c.section === 'hero' && c.key === 'images');
+      
+      const payload = {
+        value: JSON.stringify(images),
+        is_active: true
+      };
+
+      let response;
+      if (heroItem) {
+        // Update existing
+        response = await fetch(`/api/site-content/${heroItem.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(payload)
+        });
+      } else {
+        // Create new
+        response = await fetch('/api/site-content', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            section: 'hero',
+            key: 'images',
+            content_type: 'json',
+            ...payload
+          })
+        });
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        fetchContent();
+        setHeroImages(images);
+        
+        // Trigger a page refresh for hero section to update
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('cms-content-updated'));
+        }
+      } else {
+        alert(data.message || 'Failed to update images');
+      }
+    } catch (error) {
+      console.error('Error updating hero images:', error);
+      alert('Failed to update images');
+    }
+  };
+
+  const resizeImage = (file: File, maxWidth: number = 1920, maxHeight: number = 1080, quality: number = 0.8): Promise<File> => {
+    return new Promise((resolve) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      
+      img.onload = () => {
+        // Calculate new dimensions
+        let { width, height } = img;
+        
+        if (width > maxWidth || height > maxHeight) {
+          const ratio = Math.min(maxWidth / width, maxHeight / height);
+          width *= ratio;
+          height *= ratio;
+        }
+        
+        // Set canvas size
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Draw and compress
+        ctx?.drawImage(img, 0, 0, width, height);
+        
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              const compressedFile = new File([blob], file.name, {
+                type: file.type,
+                lastModified: Date.now()
+              });
+              console.log(`Image resized: ${file.size} → ${blob.size} bytes (${Math.round(blob.size / file.size * 100)}%)`);
+              resolve(compressedFile);
+            } else {
+              resolve(file);
+            }
+          },
+          file.type,
+          quality
+        );
+      };
+      
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
+  const uploadImageToSupabase = async (file: File): Promise<string | null> => {
+    try {
+      setUploading(true);
+      
+      const token = localStorage.getItem('admin-token');
+      if (!token) {
+        alert('Not authenticated. Please log in again.');
+        return null;
+      }
+
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+      if (!allowedTypes.includes(file.type)) {
+        alert('Only JPG, PNG, and WebP images are supported');
+        return null;
+      }
+
+      console.log(`Processing image: ${file.name} (${file.size} bytes)`);
+
+      // Resize/compress large images
+      let processedFile = file;
+      if (file.size > 1024 * 1024) { // If larger than 1MB
+        console.log('Large image detected, resizing...');
+        processedFile = await resizeImage(file, 1920, 1080, 0.8);
+      }
+
+      // Check if we can access Supabase URLs from client
+      console.log('Environment check:', {
+        hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+        hasAnonKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+        url: process.env.NEXT_PUBLIC_SUPABASE_URL
+      });
+
+      // Try server-side Supabase upload first (now working!)
+      console.log('Attempting Supabase upload via API...');
+      
+      const formData = new FormData();
+      formData.append('file', processedFile);
+      formData.append('folder', 'hero');
+
+      const uploadResponse = await fetch('/api/upload', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      const uploadData = await uploadResponse.json();
+      
+      if (uploadData.success) {
+        console.log('Supabase upload successful:', uploadData.url);
+        return uploadData.url;
+      } else {
+        console.log('Server-side upload failed, trying client-side...', uploadData.message);
+        
+        // Fallback to client-side upload
+        const { createClient } = await import('@supabase/supabase-js');
+        
+        // Use environment variables (now corrected)
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+        const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+        
+        const supabase = createClient(supabaseUrl, supabaseAnonKey);
+        
+        // Generate secure filename
+        const fileExt = processedFile.name.split('.').pop()?.toLowerCase();
+        const secureFileName = `hero/${Date.now()}-${Math.random().toString(36).substring(2, 12)}.${fileExt}`;
+        
+        console.log('Attempting client-side upload:', secureFileName, `(${processedFile.size} bytes)`);
+        
+        // Upload directly from browser to Supabase
+        const { error } = await supabase.storage
+          .from('product-images')
+          .upload(secureFileName, processedFile, {
+            cacheControl: '3600',
+            upsert: false
+          });
+
+        if (error) {
+          console.error('Client-side upload error:', error);
+          alert(`Upload failed: ${error.message}`);
+          return null;
+        }
+
+        // Get public URL
+        const { data: urlData } = supabase.storage
+          .from('product-images')
+          .getPublicUrl(secureFileName);
+
+        console.log('Client-side upload successful:', urlData.publicUrl);
+        return urlData.publicUrl;
+      }
+      
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      
+      // Provide more specific error messages
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        alert('Network error: Unable to connect to upload service. Please check your internet connection.');
+      } else {
+        alert('Failed to upload image: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      }
+      return null;
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleFileUpload = async (files: FileList) => {
+    const validFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
+    
+    if (validFiles.length === 0) {
+      alert('Please select only image files');
+      return;
+    }
+
+    if (validFiles.length > 5) {
+      alert('Maximum 5 images at once');
+      return;
+    }
+
+    const currentImages = getHeroImages();
+    const uploadedUrls: string[] = [];
+
+    for (const file of validFiles) {
+      const url = await uploadImageToSupabase(file);
+      if (url) {
+        uploadedUrls.push(url);
+      }
+    }
+
+    if (uploadedUrls.length > 0) {
+      const updatedImages = [...currentImages, ...uploadedUrls];
+      updateHeroImages(updatedImages);
+    }
+  };
+
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      handleFileUpload(e.target.files);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleFileUpload(e.dataTransfer.files);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+  };
+
+  const removeHeroImage = async (index: number) => {
+    const currentImages = getHeroImages();
+    const imageToRemove = currentImages[index];
+    
+    if (!imageToRemove) return;
+    
+    // Confirm deletion
+    if (!confirm(`Are you sure you want to delete this image?\n\n${imageToRemove.split('/').pop()}`)) {
+      return;
+    }
+    
+    console.log(`Removing image: ${imageToRemove}`);
+    
+    const updatedImages = currentImages.filter((_, i) => i !== index);
+    await updateHeroImages(updatedImages);
+    
+    // Optional: Clean up the image file from Supabase (if it's a Supabase URL)
+    if (imageToRemove.includes('supabase.co')) {
+      try {
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabase = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        );
+        
+        // Extract file path from URL
+        const urlParts = imageToRemove.split('/');
+        const fileName = urlParts[urlParts.length - 1];
+        const folderPath = urlParts.slice(-2, -1)[0]; // Get folder name (e.g., 'hero')
+        const fullPath = `${folderPath}/${fileName}`;
+        
+        console.log(`Attempting to delete file from storage: ${fullPath}`);
+        
+        const { error } = await supabase.storage
+          .from('product-images')
+          .remove([fullPath]);
+          
+        if (error) {
+          console.warn('Failed to delete file from storage:', error);
+          // Don't show error to user since the image was removed from the CMS
+        } else {
+          console.log('File deleted from storage successfully');
+        }
+      } catch (error) {
+        console.warn('Error during storage cleanup:', error);
+      }
+    }
+  };
+
+  useEffect(() => {
+    setHeroImages(getHeroImages());
+  }, [content]);
+
+  const getContentValue = (section: string, key: string): string => {
+    const item = content.find(c => c.section === section && c.key === key);
+    return item?.value || '';
+  };
+
+  const getContentForSection = (sectionId: string) => {
+    return content.filter(item => item.section === sectionId);
+  };
+
+  const getContentTypeIcon = (type: string) => {
+    switch (type) {
+      case 'text': return Type;
+      case 'html': return Code;
+      case 'image': return ImageIcon;
+      default: return Type;
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-white">Site Content</h1>
+        <p className="text-slate-400">Edit your website content - click the edit button on any item to make changes</p>
+      </div>
+
+      <div className="space-y-6">
+        {/* Hero Images Section */}
+        <div className="bg-black rounded-2xl border border-white/20 p-6">
+          <h3 className="text-xl font-semibold text-white mb-4">Hero Section Images</h3>
+          <p className="text-slate-400 mb-6">Upload images for your homepage slider</p>
+          
+          {/* Drag & Drop Upload Area */}
+          <div
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            className={`relative border-2 border-dashed rounded-xl p-8 text-center transition-colors ${
+              dragOver 
+                ? 'border-white bg-white/10' 
+                : 'border-white/20 hover:border-white/40'
+            }`}
+          >
+            <input
+              type="file"
+              multiple
+              accept="image/*"
+              onChange={handleFileInputChange}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              disabled={uploading}
+            />
+            
+            <div className="pointer-events-none">
+              <ImageIcon className="h-12 w-12 mx-auto mb-4 text-slate-400" />
+              {uploading ? (
+                <div className="space-y-2">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto"></div>
+                  <p className="text-white">Uploading images...</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-white font-medium">Click to browse or drag & drop images</p>
+                  <p className="text-slate-400 text-sm">Supports JPG, PNG, WebP (max 5 files at once)</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Current Images */}
+          {getHeroImages().length > 0 && (
+            <div className="mt-6">
+              <h4 className="text-lg font-medium text-white mb-4">Current Images ({getHeroImages().length})</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {getHeroImages().map((imageUrl, index) => (
+                  <div key={index} className="relative group bg-white/5 rounded-lg border border-white/10 overflow-hidden">
+                    <div className="aspect-video bg-slate-700 overflow-hidden">
+                      <img
+                        src={imageUrl}
+                        alt={`Hero image ${index + 1}`}
+                        className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                        onLoad={() => console.log(`Image loaded: ${imageUrl}`)}
+                        onError={(e) => {
+                          console.error(`Failed to load image: ${imageUrl}`);
+                          const target = e.target as HTMLImageElement;
+                          target.src = 'data:image/svg+xml;base64,' + btoa(`
+                            <svg xmlns="http://www.w3.org/2000/svg" width="400" height="225" viewBox="0 0 400 225">
+                              <rect width="100%" height="100%" fill="#374151"/>
+                              <text x="50%" y="50%" text-anchor="middle" dy="0.3em" fill="white" font-size="14" font-family="Arial">
+                                Image failed to load
+                              </text>
+                              <text x="50%" y="65%" text-anchor="middle" dy="0.3em" fill="#9CA3AF" font-size="10" font-family="Arial">
+                                ${imageUrl.substring(0, 40)}...
+                              </text>
+                            </svg>
+                          `);
+                        }}
+                      />
+                    </div>
+                    
+                    {/* Delete Button */}
+                    <button
+                      onClick={() => removeHeroImage(index)}
+                      className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-lg"
+                      title="Delete this image"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                    
+                    {/* Image Info Overlay */}
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="text-xs text-white truncate">
+                        Image {index + 1}
+                      </div>
+                      <div className="text-xs text-slate-300 truncate mt-1">
+                        {imageUrl.split('/').pop()?.split('.')[0]}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {getHeroImages().length === 0 && (
+            <div className="mt-6 text-center py-8 text-slate-400 bg-white/5 rounded-lg border border-white/10">
+              <ImageIcon className="h-12 w-12 mx-auto mb-3 opacity-50" />
+              <p className="text-lg">No hero images yet</p>
+              <p className="text-sm mt-1">Upload your first image above to get started</p>
+            </div>
+          )}
+        </div>
+
+        {/* Other Sections */}
+        {['about', 'featured', 'contact', 'marquee'].map((sectionId) => {
+          const sectionItems = contentItems.filter(item => item.section === sectionId);
+          const sectionTitles = {
+            featured: 'Featured Products Section', 
+            about: 'About Section',
+            contact: 'Contact Information',
+            marquee: 'Marquee Banner'
+          };
+          
+          return (
+            <div key={sectionId} className="bg-black rounded-2xl border border-white/20 p-6">
+              <h3 className="text-xl font-semibold text-white mb-4">{sectionTitles[sectionId as keyof typeof sectionTitles]}</h3>
+              
+              {sectionId === 'featured' ? (
+                <div className="space-y-6">
+                  {/* Featured Section Text Content */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {sectionItems.map((item) => {
+                      const currentValue = getContentValue(item.section, item.key);
+                      const ContentIcon = getContentTypeIcon(item.type as any);
+                      
+                      return (
+                        <div key={`${item.section}-${item.key}`} className="bg-white/5 rounded-lg border border-white/10 p-4">
+                          <div className="flex items-center gap-3 mb-3">
+                            <ContentIcon className="h-4 w-4 text-slate-400" />
+                            <div className="flex-1">
+                              <p className="font-medium text-white text-sm">{item.label}</p>
+                              <p className="text-xs text-slate-400">{item.description}</p>
+                            </div>
+                            <button
+                              onClick={() => setEditingItem({ 
+                                id: content.find(c => c.section === item.section && c.key === item.key)?.id || '',
+                                section: item.section,
+                                key: item.key,
+                                content_type: item.type as any,
+                                value: currentValue,
+                                metadata: {},
+                                is_active: true,
+                                created_at: '',
+                                updated_at: ''
+                              })}
+                              className="p-1 text-slate-400 hover:text-white"
+                              title={`Edit ${item.label}`}
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                          
+                          <div className="text-sm text-slate-300 bg-black/20 rounded p-2 border border-white/5">
+                            {currentValue || <span className="text-slate-500 italic">Not set</span>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  
+                  {/* Featured Products Management */}
+                  <FeaturedProductsManager />
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {sectionItems.map((item) => {
+                    const currentValue = getContentValue(item.section, item.key);
+                    const ContentIcon = getContentTypeIcon(item.type as any);
+                    
+                    return (
+                      <div key={`${item.section}-${item.key}`} className="bg-white/5 rounded-lg border border-white/10 p-4">
+                        <div className="flex items-center gap-3 mb-3">
+                          <ContentIcon className="h-4 w-4 text-slate-400" />
+                          <div className="flex-1">
+                            <p className="font-medium text-white text-sm">{item.label}</p>
+                            <p className="text-xs text-slate-400">{item.description}</p>
+                          </div>
+                          <button
+                            onClick={() => setEditingItem({ 
+                              id: content.find(c => c.section === item.section && c.key === item.key)?.id || '',
+                              section: item.section,
+                              key: item.key,
+                              content_type: item.type as any,
+                              value: currentValue,
+                              metadata: {},
+                              is_active: true,
+                              created_at: '',
+                              updated_at: ''
+                            })}
+                            className="p-1 text-slate-400 hover:text-white"
+                            title={`Edit ${item.label}`}
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                        
+                        <div className="text-sm text-slate-300 bg-black/20 rounded p-2 border border-white/5">
+                          {currentValue || <span className="text-slate-500 italic">Not set</span>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {editingItem && (
+        <EditContentModal
+          content={editingItem}
+          onClose={() => setEditingItem(null)}
+          onSave={fetchContent}
+        />
+      )}
+
+      {showAddModal && (
+        <AddContentModal
+          onClose={() => setShowAddModal(false)}
+          onSave={fetchContent}
+        />
+      )}
+    </div>
+  );
+}
+
+function EditContentModal({ content, onClose, onSave }: {
+  content: SiteContent;
+  onClose: () => void;
+  onSave: () => void;
+}) {
+  const [formData, setFormData] = useState({
+    value: content.value,
+    is_active: content.is_active
+  });
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const token = localStorage.getItem('admin-token');
+      const response = await fetch(`/api/site-content/${content.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(formData)
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        onSave();
+        onClose();
+      } else {
+        alert(data.message || 'Failed to update content');
+      }
+    } catch (error) {
+      console.error('Error updating content:', error);
+      alert('Failed to update content');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-black border border-white/20 rounded-2xl p-6 max-w-2xl w-full">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-bold text-white">Edit Content</h2>
+          <button onClick={onClose} className="text-slate-400 hover:text-white">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-lg font-medium text-white mb-2">
+              Editing: {content.section} - {content.key}
+            </label>
+            <p className="text-sm text-slate-400 mb-4">
+              Content type: {content.content_type}
+            </p>
+          </div>
+
+          <div>
+            {content.content_type === 'html' ? (
+              <textarea
+                value={formData.value}
+                onChange={(e) => setFormData(prev => ({...prev, value: e.target.value}))}
+                rows={4}
+                placeholder="Enter your content here..."
+                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-white"
+              />
+            ) : content.content_type === 'image' ? (
+              <input
+                type="url"
+                value={formData.value}
+                onChange={(e) => setFormData(prev => ({...prev, value: e.target.value}))}
+                placeholder="https://example.com/image.jpg"
+                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-white"
+              />
+            ) : content.content_type === 'color' ? (
+              <div className="flex gap-3 items-center">
+                <input
+                  type="color"
+                  value={formData.value}
+                  onChange={(e) => setFormData(prev => ({...prev, value: e.target.value}))}
+                  className="w-16 h-10 rounded-lg border border-white/10 bg-white/5"
+                />
+                <input
+                  type="text"
+                  value={formData.value}
+                  onChange={(e) => setFormData(prev => ({...prev, value: e.target.value}))}
+                  placeholder="#000000"
+                  className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-white"
+                />
+              </div>
+            ) : content.content_type === 'checkbox' ? (
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={formData.value === 'true'}
+                  onChange={(e) => setFormData(prev => ({...prev, value: e.target.checked ? 'true' : 'false'}))}
+                  className="w-5 h-5 rounded border-white/10 bg-white/5 text-white"
+                />
+                <span className="text-white">
+                  {formData.value === 'true' ? 'Enabled' : 'Disabled'}
+                </span>
+              </div>
+            ) : (
+              <input
+                type="text"
+                value={formData.value}
+                onChange={(e) => setFormData(prev => ({...prev, value: e.target.value}))}
+                placeholder="Enter text here..."
+                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-white"
+              />
+            )}
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={loading}
+              className="flex-1 px-4 py-2 text-slate-400 hover:text-white disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 px-4 py-2 bg-white hover:bg-gray-200 disabled:bg-gray-400 text-black rounded-lg font-medium"
+            >
+              {loading ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function AddContentModal({ onClose, onSave }: {
+  onClose: () => void;
+  onSave: () => void;
+}) {
+  const [formData, setFormData] = useState({
+    section: 'hero',
+    key: '',
+    content_type: 'text' as 'text' | 'html' | 'image' | 'json',
+    value: '',
+    is_active: true
+  });
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.key || !formData.value) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('admin-token');
+      const response = await fetch('/api/site-content', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(formData)
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        onSave();
+        onClose();
+      } else {
+        alert(data.message || 'Failed to create content');
+      }
+    } catch (error) {
+      console.error('Error creating content:', error);
+      alert('Failed to create content');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-black border border-white/20 rounded-2xl p-6 max-w-2xl w-full">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-bold text-white">Add New Content</h2>
+          <button onClick={onClose} className="text-slate-400 hover:text-white">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">
+                Section *
+              </label>
+              <select
+                value={formData.section}
+                onChange={(e) => setFormData(prev => ({...prev, section: e.target.value}))}
+                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-white"
+              >
+                <option value="hero">Hero</option>
+                <option value="featured">Featured</option>
+                <option value="about">About</option>
+                <option value="contact">Contact</option>
+                <option value="marquee">Marquee</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">
+                Content Type *
+              </label>
+              <select
+                value={formData.content_type}
+                onChange={(e) => setFormData(prev => ({...prev, content_type: e.target.value as any}))}
+                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-white"
+              >
+                <option value="text">Text</option>
+                <option value="html">HTML</option>
+                <option value="image">Image</option>
+                <option value="json">JSON</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">
+              Key *
+            </label>
+            <input
+              type="text"
+              value={formData.key}
+              onChange={(e) => setFormData(prev => ({...prev, key: e.target.value}))}
+              placeholder="e.g., main_heading, subtitle, etc."
+              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-white"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">
+              Value *
+            </label>
+            {formData.content_type === 'html' ? (
+              <textarea
+                value={formData.value}
+                onChange={(e) => setFormData(prev => ({...prev, value: e.target.value}))}
+                rows={4}
+                placeholder="Enter HTML content"
+                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-white"
+                required
+              />
+            ) : (
+              <input
+                type="text"
+                value={formData.value}
+                onChange={(e) => setFormData(prev => ({...prev, value: e.target.value}))}
+                placeholder="Enter content value"
+                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-white"
+                required
+              />
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="add_is_active"
+              checked={formData.is_active}
+              onChange={(e) => setFormData(prev => ({...prev, is_active: e.target.checked}))}
+              className="rounded"
+            />
+            <label htmlFor="add_is_active" className="text-sm text-slate-300">
+              Active
+            </label>
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={loading}
+              className="flex-1 px-4 py-2 text-slate-400 hover:text-white disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 px-4 py-2 bg-white hover:bg-gray-200 disabled:bg-gray-400 text-black rounded-lg font-medium"
+            >
+              {loading ? 'Creating...' : 'Create Content'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function FeaturedProductsManager() {
+  const [products, setProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editingProduct, setEditingProduct] = useState<any>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const fetchProducts = async () => {
+    try {
+      const token = localStorage.getItem('admin-token');
+      const response = await fetch('/api/products', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await response.json();
+      
+      if (data.success) {
+        setProducts(data.products || []);
+      }
+    } catch (error) {
+      console.error('Error fetching products:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteProduct = async (productId: string) => {
+    if (!confirm('Are you sure you want to delete this product?')) return;
+
+    try {
+      const token = localStorage.getItem('admin-token');
+      const response = await fetch(`/api/products/${productId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        fetchProducts();
+        // Trigger event to refresh frontend products
+        window.dispatchEvent(new CustomEvent('products-updated'));
+      } else {
+        alert(data.message || 'Failed to delete product');
+      }
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      alert('Failed to delete product');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="bg-gradient-to-br from-black to-gray-900 rounded-2xl border border-white/20 p-6">
+        <div className="flex items-center justify-center h-32">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-black rounded-2xl border border-white/20 p-6">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h3 className="text-xl font-semibold text-white">Featured Products</h3>
+          <p className="text-slate-400">Manage your featured product cards</p>
+        </div>
+        <button
+          onClick={() => setShowAddModal(true)}
+          className="px-4 py-2 bg-white hover:bg-gray-200 text-black rounded-lg font-medium transition-colors"
+        >
+          Add Product
+        </button>
+      </div>
+
+      {products.length === 0 ? (
+        <div className="text-center py-12 text-slate-400 bg-white/5 rounded-lg border border-white/10">
+          <Package className="h-12 w-12 mx-auto mb-3 opacity-50" />
+          <p className="text-lg">No featured products yet</p>
+          <p className="text-sm mt-1">Click "Add Product" to create your first featured product</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {products.map((product) => (
+            <div key={product.id} className="bg-white/5 rounded-lg border border-white/10 overflow-hidden">
+              <div className="aspect-square bg-slate-700 overflow-hidden relative">
+                {product.images && product.images.length > 0 ? (
+                  <img
+                    src={product.images[0]}
+                    alt={product.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-slate-400">
+                    <ImageIcon className="h-12 w-12" />
+                  </div>
+                )}
+                <div 
+                  className="absolute inset-0 opacity-20"
+                  style={product.metadata?.use_gradient 
+                    ? { background: `linear-gradient(to right, ${product.metadata?.card_gradient_from || '#9333ea'}, ${product.metadata?.card_gradient_to || '#db2777'})` }
+                    : { backgroundColor: product.metadata?.card_color || '#000000' }
+                  }
+                />
+              </div>
+              
+              <div className="p-4">
+                <div className="flex items-start justify-between mb-2">
+                  <h4 className="font-medium text-white truncate flex-1 mr-2">{product.name}</h4>
+                  {product.on_sale && (
+                    <span className="bg-red-500 text-white text-xs px-2 py-1 rounded">SALE</span>
+                  )}
+                </div>
+                
+                <p className="text-sm text-slate-300 line-clamp-2 mb-3">{product.description}</p>
+                
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    {product.on_sale && product.sale_price && (
+                      <span className="text-xs text-slate-400 line-through">${product.price}</span>
+                    )}
+                    <span className="text-sm font-bold text-white">${product.on_sale && product.sale_price ? product.sale_price : product.price}</span>
+                  </div>
+                </div>
+                
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setEditingProduct(product)}
+                    className="flex-1 px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded text-sm transition-colors"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => deleteProduct(product.id)}
+                    className="px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded text-sm transition-colors"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {editingProduct && (
+        <ProductModal
+          product={editingProduct}
+          onClose={() => setEditingProduct(null)}
+          onSave={() => {
+            fetchProducts();
+            setEditingProduct(null);
+            // Trigger event to refresh frontend products
+            window.dispatchEvent(new CustomEvent('products-updated'));
+          }}
+        />
+      )}
+
+      {showAddModal && (
+        <ProductModal
+          product={null}
+          onClose={() => setShowAddModal(false)}
+          onSave={() => {
+            fetchProducts();
+            setShowAddModal(false);
+            // Trigger event to refresh frontend products
+            window.dispatchEvent(new CustomEvent('products-updated'));
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function ProductModal({ product, onClose, onSave }: {
+  product: any;
+  onClose: () => void;
+  onSave: () => void;
+}) {
+  const [formData, setFormData] = useState({
+    name: product?.name || '',
+    description: product?.description || '',
+    price: product?.price?.toString() || '',
+    original_price: product?.sale_price?.toString() || '',
+    image: (product?.images && product.images[0]) || '',
+    card_color: product?.metadata?.card_color || '#000000',
+    card_gradient_from: product?.metadata?.card_gradient_from || '#9333ea',
+    card_gradient_to: product?.metadata?.card_gradient_to || '#db2777',
+    use_gradient: product?.metadata?.use_gradient || false,
+    on_sale: product?.on_sale || false,
+    is_featured: product?.featured ?? true,
+    category: product?.category || 'featured'
+  });
+  const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
+  const handleImageUpload = async (file: File) => {
+    try {
+      setUploading(true);
+      const token = localStorage.getItem('admin-token');
+      
+      const formDataUpload = new FormData();
+      formDataUpload.append('file', file);
+      formDataUpload.append('folder', 'products');
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formDataUpload
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setFormData(prev => ({ ...prev, image: data.url }));
+      } else {
+        alert('Failed to upload image');
+      }
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      alert('Failed to upload image');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const token = localStorage.getItem('admin-token');
+      const url = product ? `/api/products/${product.id}` : '/api/products';
+      const method = product ? 'PUT' : 'POST';
+
+      // Map form data to API format
+      const apiData = {
+        name: formData.name,
+        description: formData.description,
+        price: parseFloat(formData.price),
+        sale_price: formData.original_price ? parseFloat(formData.original_price) : null,
+        on_sale: formData.on_sale,
+        category: formData.category,
+        images: formData.image ? [formData.image] : [],
+        featured: formData.is_featured,
+        is_active: true,
+        metadata: {
+          card_color: formData.card_color,
+          card_gradient_from: formData.card_gradient_from,
+          card_gradient_to: formData.card_gradient_to,
+          use_gradient: formData.use_gradient
+        }
+      };
+
+      console.log('Sending API data:', apiData);
+      console.log('Token exists:', !!token);
+      console.log('URL:', url);
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(apiData)
+      });
+
+      console.log('Response status:', response.status);
+      
+      let data;
+      try {
+        const responseText = await response.text();
+        console.log('Response text:', responseText);
+        data = responseText ? JSON.parse(responseText) : {};
+      } catch (error) {
+        console.error('Error parsing response:', error);
+        alert('Failed to parse server response');
+        setLoading(false);
+        return;
+      }
+      
+      if (data.success) {
+        onSave();
+      } else {
+        alert(`Failed to ${product ? 'update' : 'create'} product: ${data.message || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error(`Error ${product ? 'updating' : 'creating'} product:`, error);
+      alert(`Failed to ${product ? 'update' : 'create'} product`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-black border border-white/20 rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-bold text-white">
+            {product ? 'Edit Product' : 'Add Product'}
+          </h2>
+          <button onClick={onClose} className="text-slate-400 hover:text-white">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">
+                Product Name *
+              </label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-white"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">
+                Price *
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                value={formData.price}
+                onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
+                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-white"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">
+                Category *
+              </label>
+              <select
+                value={formData.category}
+                onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
+                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-white"
+                required
+              >
+                <option value="featured">Featured</option>
+                <option value="rings">Rings</option>
+                <option value="necklaces">Necklaces</option>
+                <option value="bracelets">Bracelets</option>
+                <option value="earrings">Earrings</option>
+                <option value="raw-stones">Raw Stones</option>
+                <option value="crystals">Crystals</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">
+              Description
+            </label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              rows={3}
+              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-white"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">
+              Original Price (for sale)
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              value={formData.original_price}
+              onChange={(e) => setFormData(prev => ({ ...prev, original_price: e.target.value }))}
+              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-white"
+            />
+          </div>
+
+          {/* Card Background Section */}
+          <div className="space-y-4">
+            <h4 className="text-lg font-medium text-white">Card Background</h4>
+            
+            <div className="mb-4">
+              <div className="flex items-center gap-2 mb-3">
+                <input
+                  type="checkbox"
+                  id="use_gradient"
+                  checked={formData.use_gradient}
+                  onChange={(e) => setFormData(prev => ({ ...prev, use_gradient: e.target.checked }))}
+                  className="w-4 h-4 rounded"
+                />
+                <label htmlFor="use_gradient" className="text-sm font-medium text-slate-300">
+                  Use Gradient Background
+                </label>
+              </div>
+            </div>
+            
+            {formData.use_gradient ? (
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">
+                    Gradient Start Color
+                  </label>
+                  <input
+                    type="color"
+                    value={formData.card_gradient_from}
+                    onChange={(e) => setFormData(prev => ({ ...prev, card_gradient_from: e.target.value }))}
+                    className="w-full h-10 bg-white/5 border border-white/10 rounded-lg cursor-pointer"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">
+                    Gradient End Color
+                  </label>
+                  <input
+                    type="color"
+                    value={formData.card_gradient_to}
+                    onChange={(e) => setFormData(prev => ({ ...prev, card_gradient_to: e.target.value }))}
+                    className="w-full h-10 bg-white/5 border border-white/10 rounded-lg cursor-pointer"
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Background Color
+                </label>
+                <input
+                  type="color"
+                  value={formData.card_color}
+                  onChange={(e) => setFormData(prev => ({ ...prev, card_color: e.target.value }))}
+                  className="w-full h-10 bg-white/5 border border-white/10 rounded-lg cursor-pointer"
+                />
+              </div>
+            )}
+            
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">
+                Preview
+              </label>
+              <div 
+                className="w-full h-10 rounded-lg border border-white/10"
+                style={formData.use_gradient 
+                  ? { background: `linear-gradient(to right, ${formData.card_gradient_from}, ${formData.card_gradient_to})` }
+                  : { backgroundColor: formData.card_color || '#000000' }
+                }
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">
+              Product Image
+            </label>
+            <div className="space-y-2">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0])}
+                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:bg-white file:text-black hover:file:bg-gray-200"
+                disabled={uploading}
+              />
+              {uploading && <p className="text-sm text-white">Uploading...</p>}
+              {formData.image && (
+                <div className="mt-2">
+                  <img src={formData.image} alt="Preview" className="h-20 w-20 object-cover rounded" />
+                </div>
+              )}
+            </div>
+          </div>
+
+
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="on_sale"
+                checked={formData.on_sale}
+                onChange={(e) => setFormData(prev => ({ ...prev, on_sale: e.target.checked }))}
+                className="rounded"
+              />
+              <label htmlFor="on_sale" className="text-sm text-slate-300">
+                On Sale
+              </label>
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={loading}
+              className="flex-1 px-4 py-2 text-slate-400 hover:text-white disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading || uploading}
+              className="flex-1 px-4 py-2 bg-white hover:bg-gray-200 disabled:bg-gray-400 text-black rounded-lg font-medium"
+            >
+              {loading ? 'Saving...' : (product ? 'Update Product' : 'Create Product')}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+

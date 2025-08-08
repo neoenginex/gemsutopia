@@ -5,6 +5,8 @@ import { config } from '@fortawesome/fontawesome-svg-core';
 import '@fortawesome/fontawesome-svg-core/styles.css';
 import { GemPouchProvider } from '../contexts/GemPouchContext';
 import { WishlistProvider } from '../contexts/WishlistContext';
+import { CookieProvider } from '../contexts/CookieContext';
+import CookieBanner from '../components/CookieBanner';
 
 config.autoAddCss = false;
 
@@ -36,11 +38,14 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black`}
       >
-        <WishlistProvider>
-          <GemPouchProvider>
-            {children}
-          </GemPouchProvider>
-        </WishlistProvider>
+        <CookieProvider>
+          <WishlistProvider>
+            <GemPouchProvider>
+              {children}
+              <CookieBanner />
+            </GemPouchProvider>
+          </WishlistProvider>
+        </CookieProvider>
       </body>
     </html>
   );

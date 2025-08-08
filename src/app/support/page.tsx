@@ -1,6 +1,6 @@
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { IconHelp, IconMail, IconClock } from '@tabler/icons-react';
+import { Mail, Clock, CircleAlert } from 'lucide-react';
 
 export default function Support() {
   return (
@@ -16,25 +16,25 @@ export default function Support() {
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
             <div className="text-center p-6 bg-white rounded-lg shadow-sm">
-              <IconMail className="h-12 w-12 text-black mx-auto mb-4" />
+              <Mail className="h-12 w-12 text-black mx-auto mb-4" />
               <h3 className="text-xl font-bold text-black mb-2">Email Support</h3>
               <p className="text-neutral-600 mb-4">Get help via email</p>
-              <a href="mailto:support@gemsutopia.com" className="text-black font-semibold hover:underline">
-                support@gemsutopia.com
+              <a href="mailto:gemsutopia@gmail.com" className="text-black font-semibold hover:underline">
+                gemsutopia@gmail.com
               </a>
             </div>
             
             <div className="text-center p-6 bg-white rounded-lg shadow-sm">
-              <IconClock className="h-12 w-12 text-black mx-auto mb-4" />
+              <Clock className="h-12 w-12 text-black mx-auto mb-4" />
               <h3 className="text-xl font-bold text-black mb-2">Response Time</h3>
               <p className="text-neutral-600 mb-4">We typically respond within</p>
               <p className="text-black font-semibold">24 hours</p>
             </div>
             
             <div className="text-center p-6 bg-white rounded-lg shadow-sm">
-              <IconHelp className="h-12 w-12 text-black mx-auto mb-4" />
+              <CircleAlert className="h-12 w-12 text-black mx-auto mb-4" />
               <h3 className="text-xl font-bold text-black mb-2">FAQ</h3>
-              <p className="text-neutral-600 mb-4">Common questions answered</p>
+              <p className="text-neutral-600 mb-4">Your questions answered</p>
               <a href="#faq" className="text-black font-semibold hover:underline">
                 View FAQ
               </a>

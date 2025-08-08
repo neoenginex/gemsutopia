@@ -1,16 +1,13 @@
 'use client';
 import { useRef, useState, useEffect } from 'react';
 import Image from 'next/image';
+import { useCMSContent } from '@/hooks/useCMSContent';
 
 export default function Hero() {
-  const images = [
-    '/images/Review1.jpg',
-    '/images/Review2.jpg',
-    '/images/Review3.jpg',
-    '/images/Review4.jpg',
-    '/images/Review5.jpg',
-    '/images/Review6.jpg',
-  ];
+  const { getHeroImages, loading } = useCMSContent();
+  
+  // Get images from CMS
+  const images = getHeroImages();
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -54,15 +51,43 @@ export default function Hero() {
     };
   }, []);
 
+  // Reset to first slide when images change
+  useEffect(() => {
+    setCurrentIndex(0);
+    if (scrollRef.current) {
+      scrollRef.current.scrollTo({ left: 0, behavior: 'smooth' });
+    }
+  }, [images.length]);
+
   // Auto-scroll effect
   useEffect(() => {
+    if (images.length === 0 || loading) return;
+
     const interval = setInterval(() => {
       const newIndex = (currentIndex + 1) % images.length;
       scrollToSlide(newIndex);
-    }, 12000); // 12 seconds per slide
+    }, 5000); // 5 seconds per slide
 
     return () => clearInterval(interval);
-  }, [currentIndex, images.length]);
+  }, [currentIndex, images.length, loading]);
+
+  // Show loading state or empty state
+  if (loading || images.length === 0) {
+    return (
+      <section className="bg-black h-[85vh] sm:h-[85vh] md:h-[60vh] lg:h-[calc(100vh-110px)] md:mt-2 flex-shrink-0">
+        <div className="w-full h-full flex items-center justify-center">
+          {loading ? (
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white"></div>
+          ) : (
+            <div className="text-center text-white">
+              <p className="text-xl mb-2">No hero images available</p>
+              <p className="text-slate-400">Upload images from the admin dashboard</p>
+            </div>
+          )}
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="bg-black h-[85vh] sm:h-[85vh] md:h-[60vh] lg:h-[calc(100vh-110px)] md:mt-2 flex-shrink-0">
@@ -121,12 +146,15 @@ export default function Hero() {
                 ))}
               </div>
             </div>
+
             
             {/* Watermark */}
             <div className="absolute bottom-4 right-4 md:right-8 z-20">
-              <img 
+              <Image 
                 src="/logos/gems-logo.png" 
                 alt="Gemsutopia Watermark"
+                width={64}
+                height={64}
                 className="h-16 object-contain"
               />
             </div>

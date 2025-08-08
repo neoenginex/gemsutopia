@@ -1,41 +1,58 @@
 'use client';
-import { IconMenu2, IconShoppingBag, IconStar } from '@tabler/icons-react';
+import { IconMenu2 } from '@tabler/icons-react';
+import { Star, ShoppingBag } from 'lucide-react';
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import Dropdown from './Dropdown';
 import { useGemPouch } from '../contexts/GemPouchContext';
+import { useWishlist } from '../contexts/WishlistContext';
+import { useCMSContent } from '@/hooks/useCMSContent';
 
 export default function Header() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const { itemCount } = useGemPouch();
+  const { itemCount: wishlistCount } = useWishlist();
+  const { getContent } = useCMSContent();
+  
+  // Get marquee settings
+  const marqueeEnabled = getContent('marquee', 'enabled') === 'true';
+  const marqueeText = getContent('marquee', 'text') || '🎉 Grand Opening Sale - Up to 25% Off All Items! 🎉';
+  const gradientFrom = getContent('marquee', 'gradient_from') || '#9333ea'; // purple-600
+  const gradientTo = getContent('marquee', 'gradient_to') || '#db2777'; // pink-600
 
   return (
     <header className="bg-black text-white relative m-0 border-b border-white/20">
-      <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white py-1 overflow-hidden">
-        <div className="flex animate-scroll whitespace-nowrap">
-          <p className="text-sm font-medium px-8">🎉 Grand Opening Sale - Up to 25% Off All Items! 🎉</p>
-          <p className="text-sm font-medium px-8">🎉 Grand Opening Sale - Up to 25% Off All Items! 🎉</p>
-          <p className="text-sm font-medium px-8">🎉 Grand Opening Sale - Up to 25% Off All Items! 🎉</p>
-          <p className="text-sm font-medium px-8">🎉 Grand Opening Sale - Up to 25% Off All Items! 🎉</p>
-          <p className="text-sm font-medium px-8">🎉 Grand Opening Sale - Up to 25% Off All Items! 🎉</p>
-          <p className="text-sm font-medium px-8">🎉 Grand Opening Sale - Up to 25% Off All Items! 🎉</p>
-          <p className="text-sm font-medium px-8">🎉 Grand Opening Sale - Up to 25% Off All Items! 🎉</p>
-          <p className="text-sm font-medium px-8">🎉 Grand Opening Sale - Up to 25% Off All Items! 🎉</p>
+      {marqueeEnabled && (
+        <div 
+          className="text-white py-1 overflow-hidden"
+          style={{ background: `linear-gradient(to right, ${gradientFrom}, ${gradientTo})` }}
+        >
+          <div className="flex animate-scroll whitespace-nowrap">
+            {Array.from({ length: 8 }).map((_, index) => (
+              <p key={index} className="text-sm font-medium px-8">
+                {marqueeText}
+              </p>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center h-16">
           <div className="flex items-center">
             <Link href="/" className="cursor-pointer">
-              <img 
+              <Image 
                 src="/logos/gem.png" 
                 alt="Gem"
-                className="h-6"
+                width={48}
+                height={48}
+                className="w-auto h-8 object-contain"
               />
             </Link>
           </div>
           <div className="flex-1 flex justify-start pl-8">
             <div className="hidden md:flex items-center gap-6">
+              <a href="/shop" className="text-white hover:text-gray-300 text-sm font-bold">Shop</a>
               <a href="/about" className="text-white hover:text-gray-300 text-sm font-bold">About</a>
               <a href="/contact-us" className="text-white hover:text-gray-300 text-sm font-bold">Contact</a>
               <a href="/support" className="text-white hover:text-gray-300 text-sm font-bold">Support</a>
@@ -50,10 +67,14 @@ export default function Header() {
             </button>
             <div className="hidden md:flex items-center gap-4">
               <a href="/wishlist" className="text-white hover:text-gray-300 flex items-center gap-2 relative">
-                <IconStar className="h-5 w-5" strokeWidth={2} />
+                {wishlistCount > 0 ? (
+                  <Star fill="white" className="h-6 w-6" strokeWidth={2} />
+                ) : (
+                  <Star className="h-6 w-6" strokeWidth={2} />
+                )}
               </a>
               <a href="/gem-pouch" className="text-white hover:text-gray-300 flex items-center gap-2 relative">
-                <IconShoppingBag className="h-6 w-6" strokeWidth={2} />
+                <ShoppingBag className="h-6 w-6" strokeWidth={2} />
                 {itemCount > 0 && (
                   <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center">
                     {itemCount}

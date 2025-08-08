@@ -1,16 +1,19 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCcAmex, faCcApplePay, faCcDiscover, faGooglePay, faCcMastercard, faCcPaypal, faCcVisa, faInstagram, faFacebook, faXTwitter } from '@fortawesome/free-brands-svg-icons';
 import { ExchangeCoinbase } from '@web3icons/react';
+import Image from 'next/image';
 
 export default function Footer() {
   return (
     <div className="bg-black text-white w-full h-[50vh] flex flex-col justify-between border-t border-white/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full pt-8">
         <div className="flex justify-between items-center">
-          <img 
+          <Image 
             src="/logos/gem.png" 
             alt="Gem"
-            className="h-5"
+            width={40}
+            height={40}
+            className="w-auto h-6 object-contain"
           />
           <div className="flex gap-4">
             <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="text-white text-xl hover:text-gray-300 transition-colors">

@@ -1,7 +1,8 @@
 'use client';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { IconStar, IconTrash, IconShoppingBag } from '@tabler/icons-react';
+import { IconTrash } from '@tabler/icons-react';
+import { Star, ShoppingBag } from 'lucide-react';
 import { useWishlist } from '@/contexts/WishlistContext';
 import { useGemPouch } from '@/contexts/GemPouchContext';
 import Image from 'next/image';
@@ -25,7 +26,7 @@ export default function Wishlist() {
             /* Empty wishlist state */
             <div className="text-center py-16">
               <div className="w-24 h-24 bg-neutral-300 rounded-full flex items-center justify-center mx-auto mb-6">
-                <IconStar className="h-10 w-10 text-neutral-500" strokeWidth={2} />
+                <Star className="h-10 w-10 text-neutral-500" strokeWidth={2} />
               </div>
               <h2 className="text-2xl font-semibold text-black mb-4">Your wishlist is empty</h2>
               <p className="text-neutral-600 mb-8">Save your favorite gems to your wishlist for easy access.</p>
@@ -66,7 +67,7 @@ export default function Wishlist() {
                       }`}
                       title={isInPouch(item.id) ? 'Already in gem pouch' : 'Add to gem pouch'}
                     >
-                      <IconShoppingBag className="h-5 w-5" />
+                      <ShoppingBag className="h-5 w-5" />
                     </button>
                     <button
                       onClick={() => removeItem(item.id)}
